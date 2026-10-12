@@ -1,0 +1,22 @@
+{
+  "entities": {
+    "ApiKeyConfig": {
+      "title": "ApiKeyConfig",
+      "description": "User custom API keys stored securely in Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "key": { "type": "string", "maxLength": 256 },
+        "label": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "key", "label"]
+    }
+  },
+  "firestore": {
+    "/apikeys/{keyId}": {
+      "schema": "ApiKeyConfig",
+      "description": "User API keys collection"
+    }
+  }
+}

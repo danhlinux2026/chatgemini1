@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function () {
+        var NativeWebSocket = window.WebSocket;
+        if (!NativeWebSocket) return;
+        var WrappedWebSocket = function (url, protocols) {
+          if (
+            protocols === 'vite-hmr' ||
+            (Array.isArray(protocols) && protocols.indexOf('vite-hmr') !== -1)
+          ) {
+            return {
+              url: String(url),
+              protocol: 'vite-hmr',
+              readyState: 1,
+              OPEN: 1,
+              CONNECTING: 0,
+              CLOSING: 2,
+              CLOSED: 3,
+              send: function () {},
+              close: function () {},
+              addEventListener: function () {},
+              removeEventListener: function () {},
+              dispatchEvent: function () {
+                return true;
+              },
+            };
+          }
+          return protocols !== undefined
+            ? new NativeWebSocket(url, protocols)
+            : new NativeWebSocket(url);
+        };
+        WrappedWebSocket.prototype = NativeWebSocket.prototype;
+        WrappedWebSocket.CONNECTING = NativeWebSocket.CONNECTING;
+        WrappedWebSocket.OPEN = NativeWebSocket.OPEN;
+        WrappedWebSocket.CLOSING = NativeWebSocket.CLOSING;
+        WrappedWebSocket.CLOSED = NativeWebSocket.CLOSED;
+        window.WebSocket = WrappedWebSocket;
+      })();
+    </script>
+    <title>Lumina AI Studio Chat</title>
+    <meta name="description" content="Không gian làm việc trò chuyện AI đa phương thức sử dụng Google Gemini API từ AI Studio với hỗ trợ suy luận sâu, tìm kiếm thời gian thực và phân tích hình ảnh." />
+    <meta property="og:title" content="Lumina AI Studio Chat" />
+    <meta property="og:description" content="Không gian làm việc trò chuyện AI đa phương thức sử dụng Google Gemini API từ AI Studio với hỗ trợ suy luận sâu, tìm kiếm thời gian thực và phân tích hình ảnh." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased selection:bg-blue-500/30 selection:text-blue-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

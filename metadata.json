@@ -1,0 +1,6 @@
+{
+  "name": "Lumina AI Studio Chat",
+  "description": "Không gian làm việc trò chuyện AI đa phương thức sử dụng Google Gemini API từ AI Studio với hỗ trợ suy luận sâu, tìm kiếm thời gian thực và phân tích hình ảnh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
