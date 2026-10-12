@@ -192,6 +192,10 @@ class KeyPoolManager {
       })),
     };
   }
+
+  public isValidKey(key: string): boolean {
+    return this.slots.some((s) => s.key === key);
+  }
 }
 
 const keyPool = new KeyPoolManager();
@@ -643,6 +647,24 @@ async function startServer() {
         // ignore
       }
     });
+  });
+
+  // API endpoint for external AI chat integration
+  app.post('/api/v1/chat', express.json(), async (req, res) => {
+    const apiKey = req.headers['authorization']?.replace('Bearer ', '');
+    if (!apiKey || !keyPool.isValidKey(apiKey)) return res.status(401).json({ error: 'Invalid API Key' });
+
+    const { model, messages } = req.body;
+    try {
+      const genAI = createClientForKey(apiKey);
+      const result = await genAI.models.generateContent({
+        model: model || 'gemini-3.8-flash',
+        contents: messages,
+      });
+      res.json({ response: result.text });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // Terminal REST endpoint

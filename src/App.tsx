@@ -1397,6 +1397,10 @@ export default function App() {
             {/* Interactive Controls */}
             {activeView !== 'live' && (
               <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 tabular-nums bg-slate-900 px-2 py-1 rounded-md border border-slate-800">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>Quota: {poolStatus.activeKeys}/{poolStatus.totalKeys}</span>
+                </div>
                 <div className="flex items-center gap-1.5">
                   <label
                     htmlFor="model-select"
@@ -1807,6 +1811,17 @@ export default function App() {
                           <Paperclip className="w-3.5 h-3.5" />
                           <span>Đính kèm ảnh</span>
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveView('live')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                            isLiveActive ? 'text-emerald-400 bg-emerald-950/30' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                          }`}
+                          title="Gemini Live Voice"
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Voice</span>
+                        </button>
 
                         <button
                           type="button"
@@ -1820,7 +1835,7 @@ export default function App() {
 
                       <div className="flex items-center gap-2.5">
                         <span className="hidden sm:inline text-xs text-slate-500 tabular-nums">
-                          {inputPrompt.length} ký tự
+                          {Math.ceil(inputPrompt.length / 4)} tokens ước tính
                         </span>
                         {isStreaming ? (
                           <button
@@ -2221,6 +2236,18 @@ export default function App() {
                         )}
                       </tbody>
                     </table>
+                  </div>
+
+                  <div className="px-5 py-4 bg-slate-950/80 border-t border-slate-800 space-y-2.5 text-xs text-slate-300 leading-relaxed">
+                    <div className="font-semibold text-white">
+                      Tích hợp API với các ứng dụng khác:
+                    </div>
+                    <p className="text-slate-400">
+                      Bạn có thể tích hợp Lumina vào các công cụ AI khác bằng endpoint sau. Sử dụng một trong các khóa API của bạn trong header <code className="text-blue-300">Authorization: Bearer [API_KEY]</code>:
+                    </p>
+                    <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono text-emerald-400">
+                      {window.location.origin}/api/v1/chat
+                    </div>
                   </div>
 
                   <div className="px-5 py-4 bg-slate-950/80 border-t border-slate-800 space-y-2.5 text-xs text-slate-300 leading-relaxed">
