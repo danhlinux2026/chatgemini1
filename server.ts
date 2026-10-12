@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
+import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
@@ -314,6 +315,19 @@ const shellTool: FunctionDeclaration = {
   }
 };
 
+const sandboxTool: FunctionDeclaration = {
+  name: "writeSandboxFile",
+  description: "Write content to a file in a restricted sandbox directory.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      filename: { type: Type.STRING, description: "The name of the file." },
+      content: { type: Type.STRING, description: "The content to write." }
+    },
+    required: ["filename", "content"]
+  }
+};
+
 async function startServer() {
   const app = express();
   const server = createServer(app);
@@ -437,10 +451,10 @@ async function startServer() {
       }
 
       if (useSearch) {
-        config.tools = [{ googleSearch: {} }, { functionDeclarations: [shellTool] }];
+        config.tools = [{ googleSearch: {} }, { functionDeclarations: [shellTool, sandboxTool] }];
         config.toolConfig = { includeServerSideToolInvocations: true };
       } else {
-        config.tools = [{ functionDeclarations: [shellTool] }];
+        config.tools = [{ functionDeclarations: [shellTool, sandboxTool] }];
         config.toolConfig = { includeServerSideToolInvocations: true };
       }
 
@@ -697,9 +711,37 @@ async function startServer() {
       case 'help':
         return res.json({ output: 'Các lệnh hỗ trợ: whoami, date, help, ls' });
       case 'ls':
-        return res.json({ output: 'src\nnode_modules\npackage.json\nserver.ts\nindex.html\nREADME.md' });
+        return res.json({ output: 'src\nnode_modules\npackage.json\nserver.ts\nindex.html\nREADME.md\nsandbox' });
       default:
         return res.json({ error: `Lệnh '${baseCmd}' không được hỗ trợ.` });
+    }
+  });
+
+  // Sandbox File API
+  app.post('/api/sandbox/write', express.json(), async (req, res) => {
+    const { filename, content } = req.body;
+    const sandboxDir = path.resolve(__dirname, 'sandbox');
+    try {
+      await fs.mkdir(sandboxDir, { recursive: true });
+      const targetPath = path.resolve(sandboxDir, filename);
+      if (!targetPath.startsWith(sandboxDir)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      await fs.writeFile(targetPath, content);
+      res.json({ success: true, path: targetPath });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/sandbox/files', async (req, res) => {
+    const sandboxDir = path.resolve(__dirname, 'sandbox');
+    try {
+      await fs.mkdir(sandboxDir, { recursive: true });
+      const files = await fs.readdir(sandboxDir);
+      res.json({ files });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
     }
   });
 

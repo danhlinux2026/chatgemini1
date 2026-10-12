@@ -30,6 +30,7 @@ import {
   MicOff,
   Volume2,
   Radio,
+  Folder,
   Terminal as TerminalIcon,
 } from 'lucide-react';
 import { encode } from 'gpt-tokenizer';
@@ -50,7 +51,6 @@ import {
 } from './data/presets';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
 import { Terminal } from './components/Terminal';
-import { ScienceView } from './components/ScienceView';
 import {
   auth,
   db,
@@ -154,16 +154,19 @@ export default function App() {
   });
 
   const [activeView, setActiveView] = useState<
-    'chat' | 'prompts' | 'personas' | 'settings' | 'live' | 'terminal' | 'science'
+    'chat' | 'prompts' | 'personas' | 'settings' | 'live' | 'terminal'
   >('chat');
 
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState<boolean>(false);
+  const [sandboxFiles, setSandboxFiles] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [promptCategoryFilter, setPromptCategoryFilter] = useState<
     'all' | 'engineering' | 'analysis' | 'writing' | 'learning'
   >('all');
 
   const [inputPrompt, setInputPrompt] = useState<string>('');
+  const [isListening, setIsListening] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -181,6 +184,7 @@ export default function App() {
     Array<{ speaker: 'user' | 'model'; text: string }>
   >([]);
   const liveWsRef = useRef<WebSocket | null>(null);
+  const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
@@ -216,6 +220,10 @@ export default function App() {
       createInitialThread()
     );
   }, [threads, activeThreadId]);
+
+  const contextTokens = useMemo(() => {
+    return activeThread.messages.reduce((sum, msg) => sum + encode(msg.content).length, 0);
+  }, [activeThread.messages]);
 
   const activePersona = useMemo(() => {
     return (
@@ -360,7 +368,20 @@ export default function App() {
 
   useEffect(() => {
     fetchServerPoolStatus();
+    fetchSandboxFiles();
   }, []);
+
+  const fetchSandboxFiles = async () => {
+    try {
+      const res = await fetch('/api/sandbox/files');
+      if (res.ok) {
+        const data = await res.json();
+        setSandboxFiles(data.files || []);
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   useEffect(() => {
     if (activeView === 'settings') {
@@ -387,6 +408,32 @@ export default function App() {
       stopLiveSession();
     };
   }, []);
+
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'vi-VN';
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInputPrompt((prev) => prev + (prev ? ' ' : '') + transcript);
+        setIsListening(false);
+      };
+      recognition.onend = () => setIsListening(false);
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      setIsListening(true);
+      recognitionRef.current.start();
+    }
+  };
 
   const startLiveSession = async () => {
     if (isLiveActive) return;
@@ -1159,20 +1206,6 @@ export default function App() {
             <TerminalIcon className="w-3.5 h-3.5" />
             <span>Terminal</span>
           </a>
-          <a
-            href="#science"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveView('science');
-            }}
-            className={`transition-colors whitespace-nowrap shrink-0 py-1 border-b-2 ${
-              activeView === 'science'
-                ? 'text-white border-blue-500'
-                : 'border-transparent hover:text-slate-200'
-            }`}
-          >
-            Science
-          </a>
         </nav>
 
         {/* Zone 3: 1 primary action */}
@@ -1385,14 +1418,22 @@ export default function App() {
           {/* Contextual Workspace Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-2.5 border-b border-slate-800/80 bg-slate-900/30 shrink-0">
             <div className="flex items-center gap-3 min-w-0">
-              <button
-                type="button"
-                onClick={() => setSidebarOpen((v) => !v)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                title="Đóng/Mở thanh bên"
-              >
-                <Menu className="w-4 h-4" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen((v) => !v)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Đóng/Mở thanh bên"
+                >
+                  <Menu className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsRightSidebarOpen((v) => !v)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Đóng/Mở thanh tệp tin"
+                >
+                  <Folder className="w-4 h-4" />
+                </button>
               <div className="flex items-center gap-2 text-xs text-slate-400 truncate">
                 <span className="font-medium text-slate-200 truncate">
                   {activeView === 'live'
@@ -1808,11 +1849,19 @@ export default function App() {
                       className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 resize-none focus:outline-none max-h-[200px] leading-relaxed"
                     />
                     <div className="text-right text-[10px] text-slate-500 mt-1">
-                      {encode(inputPrompt).length} tokens
+                      {contextTokens + encode(inputPrompt).length} tokens (Tổng ngữ cảnh: {contextTokens} + Nhập: {encode(inputPrompt).length})
                     </div>
 
                     <div className="flex items-center justify-between gap-3 pt-2.5 mt-1 border-t border-slate-800/60">
                       <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={toggleListening}
+                          className={`p-2 rounded-lg transition-colors ${isListening ? 'bg-red-500/20 text-red-400' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
+                          title={isListening ? "Dừng ghi âm" : "Ghi âm"}
+                        >
+                          {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                        </button>
                         <input
                           ref={fileInputRef}
                           type="file"
@@ -2546,8 +2595,21 @@ export default function App() {
             </div>
           )}
           {activeView === 'terminal' && <Terminal />}
-          {activeView === 'science' && <ScienceView />}
         </main>
+
+        {/* Right Sidebar */}
+        <aside
+          className={`${
+            isRightSidebarOpen ? 'w-[272px]' : 'w-0 overflow-hidden border-l-0'
+          } shrink-0 border-l border-slate-800/80 bg-slate-900/40 flex flex-col transition-all duration-150`}
+        >
+          <div className="p-4 border-b border-slate-800/70 font-semibold text-xs text-slate-300">Tệp tin đã tạo</div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-1">
+            {sandboxFiles.map(file => (
+              <div key={file} className="text-xs text-slate-400 p-2 rounded hover:bg-slate-800 truncate">{file}</div>
+            ))}
+          </div>
+        </aside>
       </div>
     </div>
   );
