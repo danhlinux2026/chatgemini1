@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { GoogleGenAI, ThinkingLevel, Content, Part, LiveServerMessage, Modality } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel, Content, Part, LiveServerMessage, Modality, FunctionDeclaration, Type } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -302,6 +302,18 @@ function formatError(err: unknown): {
   };
 }
 
+const shellTool: FunctionDeclaration = {
+  name: "executeShellCommand",
+  description: "Execute allowed shell commands (whoami, date, help, ls).",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      command: { type: Type.STRING, description: "The command to run (e.g., 'ls')." }
+    },
+    required: ["command"]
+  }
+};
+
 async function startServer() {
   const app = express();
   const server = createServer(app);
@@ -425,7 +437,10 @@ async function startServer() {
       }
 
       if (useSearch) {
-        config.tools = [{ googleSearch: {} }];
+        config.tools = [{ googleSearch: {} }, { functionDeclarations: [shellTool] }];
+        config.toolConfig = { includeServerSideToolInvocations: true };
+      } else {
+        config.tools = [{ functionDeclarations: [shellTool] }];
         config.toolConfig = { includeServerSideToolInvocations: true };
       }
 

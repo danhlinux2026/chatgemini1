@@ -50,6 +50,7 @@ import {
 } from './data/presets';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
 import { Terminal } from './components/Terminal';
+import { ScienceView } from './components/ScienceView';
 import {
   auth,
   db,
@@ -153,7 +154,7 @@ export default function App() {
   });
 
   const [activeView, setActiveView] = useState<
-    'chat' | 'prompts' | 'personas' | 'settings' | 'live' | 'terminal'
+    'chat' | 'prompts' | 'personas' | 'settings' | 'live' | 'terminal' | 'science'
   >('chat');
 
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
@@ -1157,6 +1158,20 @@ export default function App() {
           >
             <TerminalIcon className="w-3.5 h-3.5" />
             <span>Terminal</span>
+          </a>
+          <a
+            href="#science"
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveView('science');
+            }}
+            className={`transition-colors whitespace-nowrap shrink-0 py-1 border-b-2 ${
+              activeView === 'science'
+                ? 'text-white border-blue-500'
+                : 'border-transparent hover:text-slate-200'
+            }`}
+          >
+            Science
           </a>
         </nav>
 
@@ -2531,6 +2546,7 @@ export default function App() {
             </div>
           )}
           {activeView === 'terminal' && <Terminal />}
+          {activeView === 'science' && <ScienceView />}
         </main>
       </div>
     </div>
