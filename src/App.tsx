@@ -32,6 +32,7 @@ import {
   Radio,
   Terminal as TerminalIcon,
 } from 'lucide-react';
+import { encode } from 'gpt-tokenizer';
 import {
   Attachment,
   ChatMessage,
@@ -1791,6 +1792,9 @@ export default function App() {
                       placeholder="Nhập câu hỏi, yêu cầu viết code hoặc dán văn bản... (Enter để gửi, Shift + Enter xuống dòng)"
                       className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 resize-none focus:outline-none max-h-[200px] leading-relaxed"
                     />
+                    <div className="text-right text-[10px] text-slate-500 mt-1">
+                      {encode(inputPrompt).length} tokens
+                    </div>
 
                     <div className="flex items-center justify-between gap-3 pt-2.5 mt-1 border-t border-slate-800/60">
                       <div className="flex items-center gap-2">

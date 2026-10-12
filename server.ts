@@ -426,6 +426,7 @@ async function startServer() {
 
       if (useSearch) {
         config.tools = [{ googleSearch: {} }];
+        config.toolConfig = { includeServerSideToolInvocations: true };
       }
 
       const modelChain = getFallbackModelChain(initialModel, autoModelFallback);
@@ -686,6 +687,17 @@ async function startServer() {
         return res.json({ error: `Lệnh '${baseCmd}' không được hỗ trợ.` });
     }
   });
+
+  // URL Content Fetcher tool
+  const fetchUrlContent = async (url: string) => {
+    try {
+      const response = await fetch(url);
+      const text = await response.text();
+      return { content: text.slice(0, 10000) }; // Return first 10k characters
+    } catch (e: any) {
+      return { error: e.message };
+    }
+  };
 
   if (process.env.NODE_ENV === 'production') {
     const distPath = path.resolve(__dirname, 'dist');
